@@ -3,7 +3,7 @@
 
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
-    flake-utils.url = "github:numtide/flake-utils";
+    flake-parts.url = "github:hercules-ci/flake-parts";
     pyproject-nix = {
       url = "github:pyproject-nix/pyproject.nix";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -27,56 +27,69 @@
 
   outputs =
     inputs@{
-      nixpkgs,
-      flake-utils,
+      flake-parts,
+      uv2nix,
+      pyproject-nix,
+      pyproject-build-systems,
       ...
     }:
-    flake-utils.lib.eachDefaultSystem (
-      system:
-      let
-        workspaceRoot = ./.;
-        venvName = "venv";
+    let
+      systems = [
+        "x86_64-linux"
+        "aarch64-linux"
+        "x86_64-darwin"
+        "aarch64-darwin"
+      ];
+    in
+    flake-parts.lib.mkFlake { inherit inputs; } {
+      systems = systems;
+      perSystem =
+        {
+          pkgs,
+          lib,
+          ...
+        }:
+        let
+          workspaceRoot = ./.;
+          venvName = "venv";
 
-        hasPythonVersionFile = builtins.pathExists ./.python-version;
-        python =
-          if hasPythonVersionFile then
-            let
-              pythonVersionFile = builtins.readFile ./.python-version;
-              pythonVersion = builtins.replaceStrings [ "." ] [ "" ] (
-                builtins.head (pkgs.lib.splitString "\n" pythonVersionFile)
-              );
-            in
-            pkgs."python${pythonVersion}"
-          else
-            pkgs.python312;
+          hasPythonVersionFile = builtins.pathExists ./.python-version;
+          python =
+            if hasPythonVersionFile then
+              let
+                pythonVersionFile = builtins.readFile ./.python-version;
+                pythonVersion = builtins.replaceStrings [ "." ] [ "" ] (
+                  builtins.head (lib.splitString "\n" pythonVersionFile)
+                );
+              in
+              pkgs."python${pythonVersion}"
+            else
+              pkgs.python312;
 
-        pkgs = import nixpkgs {
-          inherit system;
-          config.allowUnfree = true;
+          workspace = uv2nix.lib.workspace.loadWorkspace { workspaceRoot = workspaceRoot; };
+          overlay = workspace.mkPyprojectOverlay {
+            sourcePreference = "wheel";
+          };
+          baseSet = pkgs.callPackage pyproject-nix.build.packages {
+            inherit python;
+          };
+          pythonSet = baseSet.overrideScope (
+            lib.composeManyExtensions [
+              pyproject-build-systems.overlays.default
+              overlay
+            ]
+          );
+          venv = pythonSet.mkVirtualEnv "${venvName}" workspace.deps.default;
+        in
+        {
+
+          devShells.default = pkgs.mkShell {
+            packages = [
+              pkgs.uv
+              venv
+            ];
+          };
+          packages.mkproject = pkgs.callPackage ./mkproject.nix { };
         };
-        workspace = inputs.uv2nix.lib.workspace.loadWorkspace { workspaceRoot = workspaceRoot; };
-        overlay = workspace.mkPyprojectOverlay {
-          sourcePreference = "wheel";
-        };
-        baseSet = pkgs.callPackage inputs.pyproject-nix.build.packages {
-          inherit python;
-        };
-        pythonSet = baseSet.overrideScope (
-          pkgs.lib.composeManyExtensions [
-            inputs.pyproject-build-systems.overlays.default
-            overlay
-          ]
-        );
-        venv = pythonSet.mkVirtualEnv "${venvName}" workspace.deps.default;
-      in
-      {
-        devShells.default = pkgs.mkShell {
-          packages = [
-            pkgs.uv
-            venv
-          ];
-        };
-        programs.mkproject = pkgs.callPackage ./mkproject.nix { };
-      }
-    );
+    };
 }

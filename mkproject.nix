@@ -25,11 +25,7 @@ pkgs.writeShellScriptBin "mkproject" ''
   [project]
   name = "$name"
   version = "0.1.0"
-  requires-python = ">=3.12"
-
-  [build-system]
-  requires = ["hatchling"]
-  build-backend = "hatchling.build"
+  requires-python = ">=3.9,<=3.13"
   EOF
 
     if command -v direnv >/dev/null 2>&1; then
