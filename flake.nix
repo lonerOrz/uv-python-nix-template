@@ -3,10 +3,7 @@
 
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
-    flake-utils = {
-      url = "github:numtide/flake-utils";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
+    flake-utils.url = "github:numtide/flake-utils";
     pyproject-nix = {
       url = "github:pyproject-nix/pyproject.nix";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -39,11 +36,19 @@
       let
         workspaceRoot = ./.;
         venvName = "venv";
-        pythonVersionFile = builtins.readFile ./.python-version;
-        pythonVersion = builtins.replaceStrings [ "." ] [ "" ] (
-          builtins.head (pkgs.lib.splitString "\n" pythonVersionFile)
-        );
-        python = pkgs."python${pythonVersion}";
+
+        hasPythonVersionFile = builtins.pathExists ./.python-version;
+        python =
+          if hasPythonVersionFile then
+            let
+              pythonVersionFile = builtins.readFile ./.python-version;
+              pythonVersion = builtins.replaceStrings [ "." ] [ "" ] (
+                builtins.head (pkgs.lib.splitString "\n" pythonVersionFile)
+              );
+            in
+            pkgs."python${pythonVersion}"
+          else
+            pkgs.python312;
 
         pkgs = import nixpkgs {
           inherit system;
@@ -71,6 +76,7 @@
             venv
           ];
         };
+        programs.mkproject = pkgs.callPackage ./mkproject.nix { };
       }
     );
 }
