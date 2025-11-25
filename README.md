@@ -1,40 +1,73 @@
-# Simple `uv2nix` devshell template for python development in NixOS ❄️🐍
+# Python Development Template with `uv` and Nix ❄️🐍
 
-I had trouble finding a simple template for NixOS to setup up a python development environment with nothing sophisticated but dependency and python version management. This guide explains how to set up the environment for a desired Python version. 
+A simple template for setting up Python development environments on NixOS with minimal complexity, focusing on dependency and Python version management. This guide will walk you through configuring the environment for your desired Python version.
 
 ---
 
-## Steps to Customize the Environment 🚀
+## 🚀 Getting Started
 
-### 1. Set the Python Version 🐍
+### Quick Project Creation
 
-1. Open the `.python-version` file.
-2. Update its contents to the desired Python version (e.g., `3.10`).
+1. Use `nix run github:lonerOrz/loneros-nur#uv-nix <projectname>` to quickly create a new project
+2. Navigate to your project directory: `cd <projectname>`
 
-### 2. Update `pyproject.toml` ✏️
+---
 
-1. Open the `pyproject.toml` file.
-2. Locate the `[project]` section.
-3. Update the `requires-python` field to match the desired Python version range. For example:
+## 🛠️ Customization Steps
+
+### 1. Set Python Version 🐍 (Optional)
+
+1. Create a `.python-version` file in the project root
+2. Set the contents to your desired Python version (e.g., `3.10` or `3.11.5`)
+
+### 2. Configure Dependencies ✏️
+
+1. Open the `pyproject.toml` file
+2. Add or modify the `[tool.uv]` section with your required packages:
    ```toml
-   requires-python = ">=3.11,<3.12"
+   [tool.uv]
+   dependencies = [
+       "requests>=2.28.0",
+       "numpy>=1.24.0"
+   ]
    ```
 
-### 3. Regenerate the `uv.lock` File 🔄
+### 3. Regenerate Lock File 🔄
 
-1. Run the following command in your terminal to regenerate the `uv.lock` file (nix will complain if it doesn't exist): 
+1. Run the following command to regenerate the `uv.lock` file:
    ```bash
-   nix run nixpkgs#uv lock
+   nix develop -c uv lock
    ```
+   *Note: Nix will complain if this file doesn't exist*
 
-### 4. Enter the Development Environment 🌟
+### 4. Enter Development Environment 🌟
 
-1. Use `nix develop` to enter the development environment:
-2. Your environment should now be configured and ready to use with the selected Python version.
+1. Activate the development environment with:
+   ```bash
+   nix develop
+   ```
+2. Your environment is now configured with your selected Python version and dependencies
 
 ---
 
-## Usage 🧐
+## 📖 Usage Guide
 
-Use `uv run python` to run the configured python interpreter. To manage dependencies use `uv add <package>` and `uv remove <package>`. If `pyproject.toml` is modified directly without using `uv` commands, run `uv lock` to regenerate the `uv.lock` file.
+### Running Python Code
+Use `uv run python` to execute the configured Python interpreter.
 
+### Managing Dependencies
+- Add packages: `uv add <package>`
+- Remove packages: `uv remove <package>`
+
+### Updating Lock File
+If you modify `pyproject.toml` directly (without using `uv` commands), run `uv lock` to regenerate the `uv.lock` file.
+
+---
+
+## 🤝 Contributing
+
+Feel free to submit issues or pull requests to improve this template!
+
+## 📄 License
+
+This project is open source and available under the [MIT License](LICENSE).
