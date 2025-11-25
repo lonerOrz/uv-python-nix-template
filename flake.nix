@@ -89,7 +89,6 @@
               venv
             ];
           };
-          packages.mkproject = pkgs.callPackage ./mkproject.nix { };
         };
     };
 }
