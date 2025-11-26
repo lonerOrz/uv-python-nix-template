@@ -42,6 +42,7 @@
       ];
     in
     flake-parts.lib.mkFlake { inherit inputs; } {
+      imports = [ inputs.devshell.flakeModule ];
       systems = systems;
       perSystem =
         {
@@ -53,16 +54,19 @@
           workspaceRoot = ./.;
           venvName = "venv";
 
-          hasPythonVersionFile = builtins.pathExists ./.python-version;
+          # detect python version from .python-version
           python =
-            if hasPythonVersionFile then
-              let
-                pythonVersionFile = builtins.readFile ./.python-version;
-                pythonVersion = builtins.replaceStrings [ "." ] [ "" ] (
-                  builtins.head (lib.splitString "\n" pythonVersionFile)
-                );
-              in
-              pkgs."python${pythonVersion}"
+            let
+              detect =
+                version:
+                let
+                  parts = lib.splitString "." version;
+                  majorMinor = lib.concatStringsSep "" (lib.take 2 parts);
+                in
+                pkgs."python${majorMinor}";
+            in
+            if builtins.pathExists ./.python-version then
+              detect (builtins.head (lib.splitString "\n" (builtins.readFile ./.python-version)))
             else
               pkgs.python312;
 
@@ -70,9 +74,7 @@
           overlay = workspace.mkPyprojectOverlay {
             sourcePreference = "wheel";
           };
-          baseSet = pkgs.callPackage pyproject-nix.build.packages {
-            inherit python;
-          };
+          baseSet = pkgs.callPackage pyproject-nix.build.packages { inherit python; };
           pythonSet = baseSet.overrideScope (
             lib.composeManyExtensions [
               pyproject-build-systems.overlays.default
@@ -83,10 +85,24 @@
         in
         {
 
-          devShells.default = pkgs.mkShell {
+          devshells.default = {
             packages = [
               pkgs.uv
               venv
+            ];
+            commands = [
+              {
+                name = "python";
+                command = "${venv}/bin/python";
+              }
+              {
+                name = "pip";
+                command = "${venv}/bin/pip";
+              }
+              {
+                name = "uv";
+                command = "${pkgs.uv}/bin/uv";
+              }
             ];
           };
         };
