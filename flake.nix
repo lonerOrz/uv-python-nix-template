@@ -19,10 +19,6 @@
       inputs.uv2nix.follows = "uv2nix";
       inputs.nixpkgs.follows = "nixpkgs";
     };
-    devshell = {
-      url = "github:numtide/devshell";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
   };
 
   outputs =
@@ -42,7 +38,6 @@
       ];
     in
     flake-parts.lib.mkFlake { inherit inputs; } {
-      imports = [ inputs.devshell.flakeModule ];
       systems = systems;
       perSystem =
         {
@@ -85,24 +80,9 @@
         in
         {
 
-          devshells.default = {
+          devShells.default = pkgs.mkShell {
             packages = [
-              pkgs.uv
               venv
-            ];
-            commands = [
-              {
-                name = "python";
-                command = "${venv}/bin/python";
-              }
-              {
-                name = "pip";
-                command = "${venv}/bin/pip";
-              }
-              {
-                name = "uv";
-                command = "${pkgs.uv}/bin/uv";
-              }
             ];
           };
         };
